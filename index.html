@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เครดิต sorathan</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background-color: #0a0a0c;
+        }
+
+        .hover-bounce {
+            transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        .hover-bounce:hover, .hover-bounce:active {
+            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+    </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col items-center py-10 px-4">
+
+    <!-- แท็กเล่นเพลงแบบซ่อน (ไม่มีปุ่มแสดงบนหน้าเว็บ) -->
+    <audio id="bgMusic" loop preload="auto" class="hidden">
+        <source id="bgMusicSource" src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- แถบด้านบน: แสดงสถานะการเข้าสู่ระบบ -->
+    <div class="w-full max-w-2xl flex justify-between items-center mb-6">
+        <div id="userInfoBar" class="text-sm font-medium text-indigo-300">
+            <!-- สถานะการล็อกอินจะแสดงที่นี่ -->
+        </div>
+        <div id="authNavButtons">
+            <!-- ปุ่มเข้าสู่ระบบ/ออกจากระบบจะแสดงที่นี่ -->
+        </div>
+    </div>
+
+    <!-- ==================== 1. หน้าแอดมิน (Admin Dashboard) ==================== -->
+    <div id="adminSection" class="w-full max-w-2xl hidden space-y-6 mb-8">
+        <div class="bg-[#121216] rounded-2xl shadow-lg p-6 border border-indigo-500/30 hover-bounce">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-2xl font-bold text-indigo-400 flex items-center gap-2">
+                    <span>⚙️</span> ระบบจัดการหลังบ้าน (Admin)
+                </h2>
+            </div>
+            <p class="text-xs text-gray-400">คุณกำลังใช้งานในสิทธิ์ผู้ดูแลระบบ (เชื่อมต่อกับ Google Sheets เรียบร้อยแล้ว)</p>
+        </div>
+
+        <!-- ฟอร์มตั้งค่าข้อความ รูปแบนเนอร์ และเพลงประกอบ (สำหรับแอดมิน) -->
+        <div class="bg-[#121216] rounded-2xl shadow-lg p-6 border border-white/10 hover-bounce">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <span>🎨</span> ปรับแต่งข้อความ รูปแบนเนอร์ & ลิงก์เพลง
+            </h3>
+            <form id="adminSettingsForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">ข้อความพาดหัวแบนเนอร์</label>
+                    <input type="text" id="adminTitleInput" required 
+                           class="w-full px-4 py-2.5 bg-[#0a0a0c] border border-white/15 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                           placeholder="เช่น เครดิต sorathan">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">URL รูปภาพแบนเนอร์</label>
+                    <input type="text" id="adminBannerInput" required 
+                           class="w-full px-4 py-2.5 bg-[#0a0a0c] border border-white/15 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                           placeholder="เช่น https://example.com/image.jpg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">URL ลิงก์เพลง (ไฟล์ MP3 แบบออนไลน์)</label>
+                    <input type="url" id="adminMusicInput" required 
+                           class="w-full px-4 py-2.5 bg-[#0a0a0c] border border-white/15 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                           placeholder="เช่น https://example.com/song.mp3">
+                </div>
+                <button type="submit" class="hover-bounce w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition shadow-md active:scale-98">
+                    💾 บันทึกการตั้งค่าทั้งหมด
+                </button>
+            </form>
+        </div>
+
+        <!-- รายการบันทึกบัญชีผู้ใช้และรหัสผ่าน -->
+        <div class="bg-[#121216] rounded-2xl shadow-lg p-6 border border-white/10 hover-bounce">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <span>🔑</span> รายชื่อผู้ใช้งาน & รหัสผ่านที่บันทึกไว้
+            </h3>
+            <div id="usersAccountList" class="space-y-3">
+                <!-- รายชื่อบัญชีจะถูกโหลดมาแสดงที่นี่ -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 2. ส่วนแบนเนอร์รูปภาพ ==================== -->
+    <div class="w-full max-w-2xl bg-[#121216] rounded-2xl shadow-lg overflow-hidden mb-8 border border-white/10 hover-bounce">
+        <div class="relative h-64 sm:h-80 flex items-center justify-center">
+            <img id="mainBannerImg" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJrO9UDpiGLl7rbN7LE-RmuvrbNsmicfH9va_PZgFurg&s=10" 
+                 alt="Credit Banner" 
+                 class="w-full h-full object-cover opacity-85">
+            <div class="absolute inset-0 bg-black/50 flex items-center justify-center p-4 text-center">
+                <h1 id="mainTitleHeader" class="text-3xl sm:text-4xl font-bold text-white drop-shadow-md tracking-wide">เครดิต sorathan</h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 3. ส่วนแสดงรายการรีวิวของผู้ใช้งาน ==================== -->
+    <div class="w-full max-w-2xl bg-[#121216] rounded-2xl shadow-lg p-6 mb-8 border border-white/10 hover-bounce">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <span>💬</span> รายการรีวิวจากผู้ใช้งาน
+            </h2>
+            <span class="text-xs text-green-400 flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Real-time
+            </span>
+        </div>
+        <div id="reviewsList" class="space-y-4">
+            <!-- ข้อมูลจะถูกดึงมาแสดงอัตโนมัติ -->
+        </div>
+    </div>
+
+    <!-- ==================== 4. ส่วนฟอร์มส่งรีวิว ==================== -->
+    <div class="w-full max-w-2xl bg-[#121216] rounded-2xl shadow-lg p-6 sm:p-8 border border-white/10 hover-bounce">
+        <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span>✍️</span> ส่งรีวิวของคุณ
+        </h2>
+        <form id="reviewForm" class="space-y-4 bg-[#0a0a0c] p-5 rounded-xl border border-white/10">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">ชื่อของคุณ</label>
+                <input type="text" id="reviewerName" required 
+                       class="w-full px-4 py-2.5 bg-[#18181c] border border-white/15 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" 
+                       placeholder="กรุณาล็อกอินก่อนส่งรีวิว" disabled>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">เลือกผลลัพธ์เครดิต</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="hover-bounce flex items-center justify-center px-4 py-3 border border-green-500/30 bg-green-500/10 rounded-xl cursor-pointer hover:bg-green-500/20 transition font-semibold text-green-400 active:scale-98">
+                        <input type="radio" name="reviewChoice" value="+1 ดีมาก" required class="hidden peer">
+                        <span>✨ +1 ดีมาก</span>
+                    </label>
+                    <label class="hover-bounce flex items-center justify-center px-4 py-3 border border-red-500/30 bg-red-500/10 rounded-xl cursor-pointer hover:bg-red-500/20 transition font-semibold text-red-400 active:scale-98">
+                        <input type="radio" name="reviewChoice" value="-1 โกงบิด" required class="hidden peer">
+                        <span>🚨 -1 โกงบิด</span>
+                    </label>
+                </div>
+            </div>
+            <button type="submit" id="submitReviewBtn" 
+                    class="hover-bounce w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-xl transition shadow-md active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed">
+                ส่งรีวิวของคุณ
+            </button>
+        </form>
+    </div>
+
+    <!-- ==================== Modal หน้าต่างรวม ==================== -->
+    <div id="authModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-[#121216] border border-white/15 w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4 hover-bounce">
+            <div class="flex justify-between items-center">
+                <h3 id="modalTitle" class="text-xl font-bold text-white">เข้าสู่ระบบ</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-white text-lg">✕</button>
+            </div>
+
+            <form id="authForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">ชื่อผู้ใช้งาน</label>
+                    <input type="text" id="authUsername" required 
+                           class="w-full px-4 py-2.5 bg-[#0a0a0c] border border-white/15 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                           placeholder="ระบุชื่อผู้ใช้งาน">
+                </div>
+
+                <div id="oldPasswordContainer" class="hidden">
+                    <label class="block text-sm font-medium text-gray-300 mb-1">รหัสผ่านเดิม (ตัวเลขเท่านั้น)</label>
+                    <input type="password" id="authOldPassword" pattern="[0-9]*" inputmode="numeric" 
+                           class="w-full px-4 py-2.5 bg-[#0a0a0c] border border-white/15 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                           placeholder="ระบุรหัสผ่านเดิม">
+                </div>
+
+                <div>
+                    <label id="passwordLabel" class="block text-sm font-medium text-gray-300 mb-1">รหัสผ่าน (ตัวเลขเท่านั้น)</label>
+                    <input type="password" id="authPassword" pattern="[0-9]*" inputmode="numeric" required 
+                           class="w-full px-4 py-2.5 bg-[#0a0a0c] border border-white/15 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                           placeholder="ระบุตัวเลขรหัสผ่าน">
+                </div>
+
+                <div class="p-3 bg-indigo-950/40 rounded-lg border border-indigo-800/40 text-xs text-indigo-300">
+                    💡 <b>คำแนะนำ:</b> ตั้งรหัสผ่านเป็นตัวเลขเพื่อความสะดวกในการจดจำ
+                </div>
+
+                <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl transition shadow-md">
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+
+            <div class="flex flex-col text-center gap-1.5 text-xs text-gray-400 pt-2 border-t border-white/10">
+                <div id="registerToggleWrap">
+                    <span id="toggleAuthText">ยังไม่มีบัญชี?</span>
+                    <button id="toggleAuthBtn" class="text-indigo-400 hover:underline font-medium ml-1">สมัครสมาชิก</button>
+                </div>
+                <div>
+                    <button id="toggleChangePasswordBtn" class="text-gray-400 hover:text-indigo-300 hover:underline font-medium">🔑 ลืมรหัสผ่าน / เปลี่ยนรหัสผ่าน</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script จัดการระบบทั้งหมด -->
+    <script>
+        // ลิงก์ API Google Sheets Real-time ตัวใหม่
+        const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyekdy4Wx9nfUYG90yUT3mnl7MYNM0eLATDs9JQJQlNSQno1lVNvl5yiMop-fm0RGqt0g/exec";
+
+        const ADMIN_USERNAME = 'admin';
+
+        function getAdminPassword() {
+            return localStorage.getItem('adminPassword') || '1303';
+        }
+
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        let authMode = 'login'; 
+
+        const bgMusic = document.getElementById('bgMusic');
+        const bgMusicSource = document.getElementById('bgMusicSource');
+
+        const authModal = document.getElementById('authModal');
+        const authForm = document.getElementById('authForm');
+        const authUsernameInput = document.getElementById('authUsername');
+        const authOldPasswordInput = document.getElementById('authOldPassword');
+        const authPasswordInput = document.getElementById('authPassword');
+        const oldPasswordContainer = document.getElementById('oldPasswordContainer');
+        const passwordLabel = document.getElementById('passwordLabel');
+        const modalTitle = document.getElementById('modalTitle');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const toggleAuthBtn = document.getElementById('toggleAuthBtn');
+        const toggleAuthText = document.getElementById('toggleAuthText');
+        const toggleChangePasswordBtn = document.getElementById('toggleChangePasswordBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const userInfoBar = document.getElementById('userInfoBar');
+        const authNavButtons = document.getElementById('authNavButtons');
+        const adminSection = document.getElementById('adminSection');
+
+        const reviewForm = document.getElementById('reviewForm');
+        const reviewerNameInput = document.getElementById('reviewerName');
+        const reviewsList = document.getElementById('reviewsList');
+        const submitReviewBtn = document.getElementById('submitReviewBtn');
+        const usersAccountList = document.getElementById('usersAccountList');
+
+        const mainTitleHeader = document.getElementById('mainTitleHeader');
+        const mainBannerImg = document.getElementById('mainBannerImg');
+
+        const adminSettingsForm = document.getElementById('adminSettingsForm');
+        const adminTitleInput = document.getElementById('adminTitleInput');
+        const adminBannerInput = document.getElementById('adminBannerInput');
+        const adminMusicInput = document.getElementById('adminMusicInput');
+
+        function tryPlayAudio() {
+            bgMusic.play().then(() => {
+                removeInteractionListeners();
+            }).catch(() => {});
+        }
+
+        function handleFirstUserInteraction() {
+            bgMusic.play().then(() => {
+                removeInteractionListeners();
+            }).catch(() => {});
+        }
+
+        function addInteractionListeners() {
+            window.addEventListener('click', handleFirstUserInteraction);
+            window.addEventListener('touchstart', handleFirstUserInteraction);
+            window.addEventListener('keydown', handleFirstUserInteraction);
+            window.addEventListener('scroll', handleFirstUserInteraction);
+        }
+
+        function removeInteractionListeners() {
+            window.removeEventListener('click', handleFirstUserInteraction);
+            window.removeEventListener('touchstart', handleFirstUserInteraction);
+            window.removeEventListener('keydown', handleFirstUserInteraction);
+            window.removeEventListener('scroll', handleFirstUserInteraction);
+        }
+
+        [authPasswordInput, authOldPasswordInput].forEach(input => {
+            if (input) {
+                input.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            }
+        });
+
+        function loadSiteSettings() {
+            const defaultTitle = 'เครดิต sorathan';
+            const defaultBanner = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJrO9UDpiGLl7rbN7LE-RmuvrbNsmicfH9va_PZgFurg&s=10';
+            const defaultMusic = 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3';
+
+            const savedTitle = localStorage.getItem('siteTitle') || defaultTitle;
+            const savedBanner = localStorage.getItem('siteBanner') || defaultBanner;
+            const savedMusic = localStorage.getItem('siteMusic') || defaultMusic;
+
+            mainTitleHeader.innerText = savedTitle;
+            mainBannerImg.src = savedBanner;
+            
+            if (bgMusicSource.src !== savedMusic) {
+                bgMusicSource.src = savedMusic;
+                bgMusic.load();
+            }
+
+            adminTitleInput.value = savedTitle;
+            adminBannerInput.value = savedBanner;
+            adminMusicInput.value = savedMusic;
+
+            addInteractionListeners();
+            tryPlayAudio();
+        }
+
+        adminSettingsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newTitle = adminTitleInput.value.trim();
+            const newBanner = adminBannerInput.value.trim();
+            const newMusic = adminMusicInput.value.trim();
+
+            if (newTitle && newBanner && newMusic) {
+                localStorage.setItem('siteTitle', newTitle);
+                localStorage.setItem('siteBanner', newBanner);
+                localStorage.setItem('siteMusic', newMusic);
+                loadSiteSettings();
+                alert('✅ บันทึกการตั้งค่าทั้งหมดเรียบร้อยแล้ว!');
+            }
+        });
+
+        function updateAuthUI() {
+            if (currentUser) {
+                userInfoBar.innerHTML = `👤 เข้าสู่ระบบในชื่อ: <b class="text-white">${escapeHtml(currentUser.username)}</b> ${currentUser.isAdmin ? '<span class="ml-1 px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded text-xs">Admin</span>' : ''}`;
+                
+                authNavButtons.innerHTML = `
+                    <button onclick="logout()" class="hover-bounce text-xs text-red-400 hover:text-red-300 bg-red-950/40 px-3.5 py-2 rounded-xl border border-red-800/40 font-medium transition active:scale-98">
+                        🚪 ออกจากระบบ
+                    </button>
+                `;
+                reviewerNameInput.value = currentUser.username;
+                reviewerNameInput.disabled = true;
+                submitReviewBtn.disabled = false;
+
+                if (currentUser.isAdmin) {
+                    adminSection.classList.remove('hidden');
+                    loadAdminData();
+                } else {
+                    adminSection.classList.add('hidden');
+                }
+            } else {
+                userInfoBar.innerHTML = `<span class="text-gray-400">ยังไม่ได้เข้าสู่ระบบ</span>`;
+                authNavButtons.innerHTML = `
+                    <button onclick="switchAuthMode('login')" class="hover-bounce text-xs text-indigo-300 hover:text-white bg-[#121218] px-3.5 py-2 rounded-xl border border-indigo-900/60 font-medium transition active:scale-98">
+                        🔑 เข้าสู่ระบบ / สมัครสมาชิก
+                    </button>
+                `;
+                reviewerNameInput.value = '';
+                reviewerNameInput.placeholder = 'กรุณาล็อกอินก่อนส่งรีวิว';
+                reviewerNameInput.disabled = true;
+                submitReviewBtn.disabled = true;
+                adminSection.classList.add('hidden');
+            }
+        }
+
+        function switchAuthMode(mode) {
+            authMode = mode;
+            authModal.classList.remove('hidden');
+            authUsernameInput.value = '';
+            authPasswordInput.value = '';
+            authOldPasswordInput.value = '';
+
+            if (authMode === 'login') {
+                modalTitle.innerText = 'เข้าสู่ระบบ';
+                authSubmitBtn.innerText = 'เข้าสู่ระบบ';
+                passwordLabel.innerText = 'รหัสผ่าน (ตัวเลขเท่านั้น)';
+                oldPasswordContainer.classList.add('hidden');
+                authOldPasswordInput.removeAttribute('required');
+                toggleAuthText.innerText = 'ยังไม่มีบัญชี?';
+                toggleAuthBtn.innerText = 'สมัครสมาชิก';
+            } else if (authMode === 'register') {
+                modalTitle.innerText = 'สมัครสมาชิก';
+                authSubmitBtn.innerText = 'ยืนยันการสมัคร';
+                passwordLabel.innerText = 'ตั้งรหัสผ่าน (ตัวเลขเท่านั้น)';
+                oldPasswordContainer.classList.add('hidden');
+                authOldPasswordInput.removeAttribute('required');
+                toggleAuthText.innerText = 'มีบัญชีอยู่แล้ว?';
+                toggleAuthBtn.innerText = 'เข้าสู่ระบบ';
+            } else if (authMode === 'change_password') {
+                modalTitle.innerText = 'เปลี่ยนรหัสผ่าน';
+                authSubmitBtn.innerText = 'ยืนยันเปลี่ยนรหัสผ่าน';
+                passwordLabel.innerText = 'รหัสผ่านใหม่ (ตัวเลขเท่านั้น)';
+                oldPasswordContainer.classList.remove('hidden');
+                authOldPasswordInput.setAttribute('required', 'required');
+                toggleAuthText.innerText = 'กลับไปที่หน้า?';
+                toggleAuthBtn.innerText = 'เข้าสู่ระบบ';
+            }
+        }
+
+        closeModalBtn.addEventListener('click', () => authModal.classList.add('hidden'));
+
+        toggleAuthBtn.addEventListener('click', () => {
+            if (authMode === 'register' || authMode === 'change_password') {
+                switchAuthMode('login');
+            } else {
+                switchAuthMode('register');
+            }
+        });
+
+        toggleChangePasswordBtn.addEventListener('click', () => {
+            switchAuthMode('change_password');
+        });
+
+        authForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = authUsernameInput.value.trim();
+            const password = authPasswordInput.value.trim();
+            const oldPassword = authOldPasswordInput.value.trim();
+
+            if (!username || !password) return;
+
+            let users = JSON.parse(localStorage.getItem('websiteUsers')) || [];
+
+            if (authMode === 'login') {
+                if (username === ADMIN_USERNAME && password === getAdminPassword()) {
+                    currentUser = { username: ADMIN_USERNAME, isAdmin: true };
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    authModal.classList.add('hidden');
+                    updateAuthUI();
+                    alert('👑 เข้าสู่ระบบในสิทธิ์แอดมินสำเร็จ!');
+                    return;
+                }
+
+                const validUser = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+                if (validUser) {
+                    currentUser = { username: validUser.username, isAdmin: false };
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    authModal.classList.add('hidden');
+                    updateAuthUI();
+                } else {
+                    alert('❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+                }
+            } 
+            else if (authMode === 'register') {
+                if (username.toLowerCase() === ADMIN_USERNAME.toLowerCase()) {
+                    alert('❌ ไม่สามารถใช้ชื่อผู้ใช้นี้ได้');
+                    return;
+                }
+
+                const existingUser = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+                if (existingUser) {
+                    alert('❌ ชื่อผู้ใช้นี้มีในระบบแล้ว กรุณาใช้ชื่ออื่น');
+                    return;
+                }
+
+                const newUser = { username: username, password: password };
+                users.push(newUser);
+                localStorage.setItem('websiteUsers', JSON.stringify(users));
+
+                currentUser = { username: username, isAdmin: false };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                authModal.classList.add('hidden');
+                updateAuthUI();
+                alert('✅ สมัครสมาชิกและเข้าสู่ระบบสำเร็จ!');
+            } 
+            else if (authMode === 'change_password') {
+                if (!oldPassword) {
+                    alert('กรุณากรอกรหัสผ่านเดิม');
+                    return;
+                }
+
+                if (username === ADMIN_USERNAME) {
+                    if (oldPassword === getAdminPassword()) {
+                        localStorage.setItem('adminPassword', password);
+                        authModal.classList.add('hidden');
+                        alert('✅ เปลี่ยนรหัสผ่านแอดมินเรียบร้อยแล้ว!');
+                    } else {
+                        alert('❌ รหัสผ่านเดิมของแอดมินไม่ถูกต้อง');
+                    }
+                    return;
+                }
+
+                let userIndex = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+                if (userIndex !== -1) {
+                    if (users[userIndex].password === oldPassword) {
+                        users[userIndex].password = password;
+                        localStorage.setItem('websiteUsers', JSON.stringify(users));
+                        authModal.classList.add('hidden');
+                        alert('✅ เปลี่ยนรหัสผ่านสำเร็จแล้ว!');
+                    } else {
+                        alert('❌ รหัสผ่านเดิมไม่ถูกต้อง');
+                    }
+                } else {
+                    alert('❌ ไม่พบชื่อผู้ใช้นี้ในระบบ');
+                }
+            }
+        });
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            updateAuthUI();
+        }
+
+        async function fetchReviewsFromSheets() {
+            try {
+                const response = await fetch(GOOGLE_SHEETS_API_URL);
+                const reviews = await response.json();
+
+                reviewsList.innerHTML = '';
+
+                if (!reviews || reviews.length === 0) {
+                    reviewsList.innerHTML = `
+                        <div class="hover-bounce p-4 bg-[#18181c] rounded-xl border border-white/10 text-center text-gray-400 text-sm">
+                            ยังไม่มีรีวิว มาเป็นคนแรกที่รีวิวกันเลย!
+                        </div>
+                    `;
+                    return;
+                }
+
+                reviews.reverse().forEach(review => {
+                    const reviewItem = document.createElement('div');
+                    reviewItem.className = 'hover-bounce p-4 bg-[#18181c] rounded-xl border border-white/10 shadow-sm flex justify-between items-center gap-2';
+                    const name = review.name ? escapeHtml(review.name) : 'ไม่ระบุชื่อ';
+                    let text = review.text ? review.text.toString() : '';
+                    
+                    if (text.startsWith("'")) text = text.substring(1);
+
+                    const time = review.time ? review.time : 'เมื่อสักครู่';
+
+                    let badgeClass = text.includes('+1') ? 'bg-green-500/15 text-green-400 border-green-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30';
+
+                    reviewItem.innerHTML = `
+                        <div>
+                            <h4 class="font-semibold text-white text-base">${name}</h4>
+                            <span class="text-xs text-gray-400">${time}</span>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-sm font-bold border ${badgeClass}">${escapeHtml(text)}</span>
+                    `;
+                    reviewsList.appendChild(reviewItem);
+                });
+            } catch (error) {
+                console.error("ดึงข้อมูลรีวิวไม่สำเร็จ:", error);
+            }
+        }
+
+        function loadAdminData() {
+            let users = JSON.parse(localStorage.getItem('websiteUsers')) || [];
+            usersAccountList.innerHTML = '';
+
+            if (users.length === 0) {
+                usersAccountList.innerHTML = `<div class="text-sm text-gray-400 bg-[#0a0a0c] p-3 rounded-lg">ยังไม่มีสมาชิกสมัครเข้ามา</div>`;
+            } else {
+                users.forEach(u => {
+                    const userCard = document.createElement('div');
+                    userCard.className = 'flex justify-between items-center bg-[#0a0a0c] p-3 rounded-lg border border-white/5 text-sm';
+                    userCard.innerHTML = `
+                        <span class="text-white font-medium">👤 ${escapeHtml(u.username)}</span>
+                        <span class="text-indigo-300 font-mono">🔑 รหัส: <b>${escapeHtml(u.password)}</b></span>
+                    `;
+                    usersAccountList.appendChild(userCard);
+                });
+            }
+        }
+
+        reviewForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser) {
+                alert('กรุณาล็อกอินก่อนส่งรีวิว');
+                return;
+            }
+
+            const selectedChoice = document.querySelector('input[name="reviewChoice"]:checked');
+
+            if (selectedChoice) {
+                submitReviewBtn.disabled = true;
+                submitReviewBtn.innerText = 'กำลังส่งรีวิว...';
+
+                const now = new Date();
+                const timeString = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'});
+
+                const newReview = {
+                    name: currentUser.username,
+                    text: selectedChoice.value,
+                    time: timeString
+                };
+
+                try {
+                    await fetch(GOOGLE_SHEETS_API_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(newReview)
+                    });
+
+                    alert('✅ ส่งรีวิวเรียบร้อยแล้ว!');
+                    selectedChoice.checked = false;
+                    setTimeout(fetchReviewsFromSheets, 1200);
+                } catch (error) {
+                    alert('❌ เกิดข้อผิดพลาดในการส่งรีวิว');
+                } finally {
+                    submitReviewBtn.disabled = false;
+                    submitReviewBtn.innerText = 'ส่งรีวิวของคุณ';
+                }
+            }
+        });
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.toString()
+                       .replace(/&/g, "&amp;")
+                       .replace(/</g, "&lt;")
+                       .replace(/>/g, "&gt;")
+                       .replace(/"/g, "&quot;")
+                       .replace(/'/g, "&#039;");
+        }
+
+        loadSiteSettings();
+        updateAuthUI();
+        fetchReviewsFromSheets();
+
+        setInterval(fetchReviewsFromSheets, 5000);
+    </script>
+</body>
+</html>
